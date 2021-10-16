@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Eu apoio a Paula Franco</title>
+  <style>
+    body {
+      font-family: 'sans-serif';
+    }
+
+    div.page {
+      display:  block;
+      position:  absolute;
+      left:  200px;
+      right:  200px;
+      top: 0px;
+      bottom:  0px;
+      padding:  20px;
+    }
+
+    div.bg {
+      display:  block;
+      position:  fixed;
+      left:  200px;
+      right:  200px;
+      top: 0px;
+      bottom:  0px;
+      background-color: #EEE;
+      filter: drop-shadow(0px 0px 15px #888);
+    }
+
+    div#tuneBox {
+      position:  absolute;
+      right:  20px;
+      padding: 20px;
+      filter: drop-shadow(0px 0px 8px white);
+      background-color: rgba(224,224,224,0.8);
+    }
+
+    div#tuneBox input {
+      position: relative;
+      margin-left: 200px;
+    }
+    div#tuneBox span {
+      position: absolute;
+    }
+
+    div#tuneBox #sizeInput {
+      margin-top: 3px;
+      margin-bottom: 3px;
+    }
+
+    div#resultBox {
+      padding:  30px;
+    }
+
+    div#resultBox span, div#resultBox a{
+      display: block;
+      padding: 10px;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="page">
+
+<div id="heading">
+  <h1>Javascript picture framing</h1>
+  <p>Simple implementation of image manipulation using only javascript in the browser</p>
+</div>
+
+<div id="inputBox">
+  <label>Select a framing image:</label><br/>
+  <select name="framingImage", id="framingInput">
+    <option value="{&quot;image&quot;: &quot;frames/stars.svg&quot;}">Stars</option>
+    <option value="{&quot;image&quot;: &quot;frames/framePF.svg&quot;, &quot;mask&quot;:{&quot;shape&quot;: &quot;circular&quot;, &quot;margin&quot;: 55}}">Eu apoio a Paula Franco</option>
+    <option value="{&quot;image&quot;: &quot;frames/LaughingMan.svg&quot;, &quot;mask&quot;:{&quot;shape&quot;: &quot;circular&quot;, &quot;margin&quot;: 250}}">Laughing Man</option>
+    <option value="{&quot;image&quot;: &quot;frames/scraped.png&quot;}">Scrapped frame</option>
+    <option value="{&quot;image&quot;: &quot;frames/golden_frame.png&quot;, &quot;mask&quot;:{&quot;shape&quot;: &quot;square&quot;, &quot;margin&quot;: 50}}">Golden frame</option>
+    <option value="{&quot;image&quot;: &quot;frames/golden_floral_circular.png&quot;, &quot;mask&quot;:{&quot;shape&quot;: &quot;circular&quot;, &quot;margin&quot;: 220, &quot;clip&quot;: 300}}">Floral frame</option>
+  </select><br/>
+  <label>Select a picture to process:<br/><input type="file" accept=".png,.jpg,.jpeg,.svg,.gif"></label><br/>
+  <!--img src="framePF.svg" id="frameElement" style="display:none;position:absolute;top:-100%;"-->
+  <!--<img src="LaughingMan.svg" id="frameElement" style="display:none;position:absolute;top:-100%;">-->
+
+</div>
+
+<div id="tuneBox">
+  <label><span>Output size (pixels):</span><input type="number" id="sizeInput" value=400 min=80 max=1000 step=10></label><br/>
+  <label><span>Zoom:</span><input type="range" id="zoomInput" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>X Offset:</span><input type="range" id="offsetX" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>Y Offset:</span><input type="range" id="offsetY" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>White Balance:</span><input type="range" id="whiteBalance" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>Brightness:</span><input type="range" id="brightness" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>Contrast:</span><input type="range" id="contrast" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>Saturation:</span><input type="range" id="saturation" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <label><span>Sharpness:</span><input type="range" id="sharpness" min=-100 max=100 step=1 value=0, disabled=true></label><br/>
+  <input id="resetBtn" type=button value="Reset">
+</div>
+
+<div id="resultBox">
+</div>
+
+</div>
+
+<script type="text/javascript">
+
+function clipColorValue(val) {
+  if (val < 0) return 0;
+  if (val > 255) return 255;
+  return val
+}
+
+function setBrightness(imageData, brightness) {
+  const data = imageData.data;
+  for(let i=0, len = data.length; i<len; i+=4) {
+    data[i]     = clipColorValue(data[i]     + brightness*255); // red
+    data[i + 1] = clipColorValue(data[i + 1] + brightness*255); // green
+    data[i + 2] = clipColorValue(data[i + 2] + brightness*255); // blue
+  }
+
+  return imageData
+}
+
+function setContrast(imageData, contrast) {
+  const data = imageData.data;
+  const factor = 1 + contrast;
+  const offset = (255-255*factor)/2;
+
+  for(let i=0, len = data.length; i<len; i+=4) {
+
+    data[i]     = clipColorValue(data[i]     * factor + offset); // red
+    data[i + 1] = clipColorValue(data[i + 1] * factor + offset); // green
+    data[i + 2] = clipColorValue(data[i + 2] * factor + offset); // blue
+  }
+
+  return imageData
+}
+
+function setSaturation(imageData, saturation) {
+  const data = imageData.data;
+  for(let i=0, len = data.length; i<len; i+=4) {
+    // Simple arithmetic average:
+    // const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    // CiE luminance for the sRGB color space:
+    const gray = 0.2126*data[i] + 0.7152*data[i+1] + 0.0722*data[i+2];
+    
+    data[i]     = clipColorValue(data[i]     + (data[i]     - gray) * saturation); // red
+    data[i + 1] = clipColorValue(data[i + 1] + (data[i + 1] - gray) * saturation); // green
+    data[i + 2] = clipColorValue(data[i + 2] + (data[i + 2] - gray) * saturation); // blue
+  }
+
+  return imageData
+}
+
+function setSharpness(ctx, imageData, sharpness) {
+  const data = imageData.data;
+  const temp = ctx.createImageData(imageData).data;
+
+  var gaussianKernel = [
+    [1, 4, 7, 4,1],
+    [4,16,26,16,4],
+    [7,26,41,26,7],
+    [4,16,26,16,4],
+    [1, 4, 7, 4,1]
+  ];
+
+  // normalize the kernel
+  var sum = 0;
+  for (let i=0; i<5; i++) {
+    for (let j=0; j<5; j++) {
+      sum += gaussianKernel[i][j];
+    }
+  }
+  for (let i=0; i<5; i++) {
+    for (let j=0; j<5; j++) {
+      gaussianKernel[i][j] = gaussianKernel[i][j] / sum;
+    }
+  }
+
+  const w = imageData.width;
+  const h = imageData.width;
+
+  for (let i=0; i<5; i++) {
+    for (let j=0; j<5; j++) {
+      for (let y=0; y<h - 5; y++) {
+        for (let x=0; x<w - 5; x++) {
+          temp[y*w*4 + x*4    ] += data[(y+i)*w*4 + (x+j)*4    ] * gaussianKernel[i][j];
+          temp[y*w*4 + x*4 + 1] += data[(y+i)*w*4 + (x+j)*4 + 1] * gaussianKernel[i][j];
+          temp[y*w*4 + x*4 + 2] += data[(y+i)*w*4 + (x+j)*4 + 2] * gaussianKernel[i][j];
+        }
+      }
+    }
+  }
+
+  for(let i=0, len = data.length; i<len; i+=4) {
+    data[i]   = clipColorValue(data[i]   + (data[i]   - temp[i]  ) * sharpness);
+    data[i+1] = clipColorValue(data[i+1] + (data[i+1] - temp[i+1]) * sharpness);
+    data[i+2] = clipColorValue(data[i+2] + (data[i+2] - temp[i+2]) * sharpness);
+  }
+}  
+
+function setWhiteBalance(imageData, whiteBalance) {
+  const data = imageData.data;
+  const red = 0.2126*255;
+  const blue = 0.0722*255;
+
+  for(let i=0, len = data.length; i<len; i+=4) {
+
+    data[i]   = data[i] + blue * whiteBalance
+    data[i+2] = data[i+2] + red * whiteBalance
+    
+  }  
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'download';
+  
+  const clickHandler = () => {
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      this.removeEventListener('click', clickHandler);
+    }, 150);
+  };
+  
+  a.addEventListener('click', clickHandler, false);
+  
+  a.click();
+  
+  return a;
+}
+
+function setupDownloadButton() {
+  const loadedImageElement = document.getElementById("loadedImage");  
+  const resultBoxElement = document.getElementById("resultBox");
+  var btn = document.getElementById("downloadBtn");
+
+  if (btn !== null) {
+    resultBoxElement.removeChild(btn);
+  }
+
+  if (loadedImageElement !== null) {
+    
+    btn = document.createElement("a");
+    btn.id = "downloadBtn";
+    resultBoxElement.appendChild(btn);
+
+    const cvs = document.getElementById("rasterArea");
+    try {
+      cvs.toBlob(function (blob) {
+        const downloadLink = downloadBlob(blob);
+
+        downloadLink.title="Download the framed picture";
+        downloadLink.textContent="Download";
+
+
+      });
+    }
+    catch (exp) {
+      resultBoxElement.removeChild(btn);
+      btn = document.createElement("span");
+      btn.textContent = "Right-click to download the picture";
+      btn.id = "downloadBtn";
+      resultBoxElement.appendChild(btn);
+    }
+  }
+}
+
+function applyFrameToImage(finalSize = 400) {
+  const sizeInput       = document.getElementById("sizeInput");
+  const zoomInput       = document.getElementById("zoomInput");
+  const offsetXInput    = document.getElementById("offsetX");
+  const offsetYInput    = document.getElementById("offsetY");
+  const brightnessInput = document.getElementById("brightness");
+  const contrastInput   = document.getElementById("contrast");
+  const saturationInput = document.getElementById("saturation");
+  const sharpnessInput  = document.getElementById("sharpness");
+  const whiteBalanceInput  = document.getElementById("whiteBalance");
+
+  finalSize = sizeInput.value;
+
+  console.log("Apply frame to image...");
+  const loadedImageElement = document.getElementById("loadedImage");
+
+  if (loadedImageElement !== null) {
+    const frameInput = document.getElementById("framingInput");
+    const opts = JSON.parse(frameInput.value);
+    var frameThickness=0;
+    var frameClipping=0;
+    var masking = null;
+    if ("mask" in opts) {
+      if (opts["mask"]["shape"] == "circular") {
+        masking = opts["mask"]["shape"];
+        frameThickness = opts["mask"]["margin"];
+        if ("clip" in opts["mask"]) {
+          frameClipping=opts["mask"]["clip"];
+        }
+      }
+    }
+
+    var cvs = document.getElementById("rasterArea");
+    if (cvs !== null) {
+      document.getElementById("resultBox").removeChild(cvs);
+    }
+    const frame = document.getElementById("frameElement");
+    const frame_w = frame.naturalWidth;
+    const frame_h = frame.naturalHeight;
+
+    console.log("Frame size:",frame_w,frame_h);
+
+    const frame_major = Math.max(frame_w, frame_h);
+
+    const cvs_w = frame_w * finalSize/frame_major;
+    const cvs_h = frame_h * finalSize/frame_major;
+    const frame_thickness = frameThickness * finalSize/frame_major;
+    const frame_clipping  = frameClipping * finalSize/frame_major;
+
+    console.log("Output size set to:",cvs_w,cvs_h);
+    console.log("Frame thickness:",frameThickness, "to:", frame_thickness);
+
+    cvs = document.createElement("canvas");
+    cvs.id = "rasterArea";
+    cvs.width = cvs_w;
+    cvs.height = cvs_h;
+    document.getElementById("resultBox").appendChild(cvs);
+
+    const zoom = zoomInput.value;
+    const offsetX = offsetXInput.value
+    const offsetY = offsetYInput.value
+
+    const img_w = loadedImageElement.naturalWidth;
+    const img_h = loadedImageElement.naturalHeight;
+
+    var clip = Math.min(img_w, img_h);
+
+    console.log("Zoom", zoom/100);
+    console.log("Zoom offset", frame_thickness*2/finalSize);
+
+    clip = clip - clip * (zoom/100 - frame_thickness*2/finalSize);
+
+    var centerOffsetX = (img_w - clip)/2;
+    var centerOffsetY = (img_h - clip)/2;
+
+    centerOffsetX = centerOffsetX - centerOffsetX * offsetX / 100;
+    centerOffsetY = centerOffsetY - centerOffsetY * offsetY / 100;
+
+    var ctx = cvs.getContext('2d');
+
+    // Create circular clipping region
+    ctx.save();
+    if (masking == "circular") {
+      ctx.beginPath();
+      ctx.arc(cvs_w/2, cvs_h/2, Math.min(cvs_w-frame_clipping, cvs_h-frame_clipping)/2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.closePath();      
+    }
+    ctx.drawImage(loadedImageElement, centerOffsetX, centerOffsetY, clip, clip, 0, 0, cvs_w, cvs_h);
+    ctx.restore();
+
+    var imageData = ctx.getImageData(0, 0, cvs_w, cvs_h);
+
+    setWhiteBalance(imageData, whiteBalanceInput.value / 100);
+    setBrightness(imageData, brightnessInput.value / 100);
+    setContrast(imageData, contrastInput.value / 100);
+    setSaturation(imageData, saturationInput.value / 100);
+
+    setSharpness(ctx, imageData, sharpnessInput.value / 100);
+
+    ctx.putImageData(imageData, 0, 0);
+
+    ctx.drawImage(frame, 0, 0, frame_w, frame_h, 0, 0, cvs_w, cvs_h);
+
+    zoomInput.disabled=false;
+    offsetXInput.disabled=false;
+    offsetYInput.disabled=false;
+    brightnessInput.disabled=false;
+    contrastInput.disabled=false;
+    saturationInput.disabled=false;
+    sharpnessInput.disabled=false;
+    whiteBalanceInput.disabled=false;
+
+  } else {
+    zoomInput.disabled=true;
+    offsetXInput.disabled=true;
+    offsetYInput.disabled=true;
+    brightnessInput.disabled=true;
+    contrastInput.disabled=true;
+    saturationInput.disabled=true;
+    sharpnessInput.disabled=true;
+    whiteBalanceInput.disabled=true;
+  }
+
+  setupDownloadButton();
+}
+
+function loadImage(reader, id) {
+  console.log("Loading image...");
+  loadedImageElement = document.getElementById(id);
+  if (loadedImageElement === null) {
+    console.log("Creating image element...");
+    loadedImageElement = document.createElement('img');
+    document.body.appendChild(loadedImageElement);
+    loadedImageElement.style.display = "none";
+    loadedImageElement.id = id
+    loadedImageElement.addEventListener("load", function() {applyFrameToImage()}, false);
+  }
+  loadedImageElement.src = reader.result;
+}
+
+function readImages() {
+  resetValues();
+  console.log("Reading frame image...");
+
+  const frameInput = document.getElementById("framingInput");
+  opts = JSON.parse(frameInput.value);
+  const frame_file = opts["image"];
+
+  loadImage({"result": frame_file}, "frameElement");
+
+  console.log("Reading image...");
+  const reader = new FileReader();
+  reader.addEventListener("load", function () {loadImage(reader, "loadedImage");}, false);
+
+  const file = document.querySelector("input[type=file]").files[0];
+  if (file) {
+    reader.readAsDataURL(file);
+  }
+}
+
+function resetValues() {
+  const zoomInput = document.getElementById("zoomInput");
+  const offsetXInput = document.getElementById("offsetX");
+  const offsetYInput = document.getElementById("offsetY");
+  const brightnessInput = document.getElementById("brightness");
+  const contrastInput = document.getElementById("contrast");
+  const saturationInput = document.getElementById("saturation");
+  const sharpnessInput = document.getElementById("sharpness");
+  const whiteBalanceInput = document.getElementById("whiteBalance");
+
+  zoomInput.value = 0;
+  offsetXInput.value = 0;
+  offsetYInput.value = 0;
+  brightnessInput.value = 0;
+  contrastInput.value = 0;
+  saturationInput.value = 0; 
+  sharpnessInput.value = 0;
+  whiteBalanceInput.value = 0;
+}
+
+
+function setup(){
+  console.log("Setup webpage...");
+  const frameInput = document.getElementById("framingInput");
+  frameInput.addEventListener("change", readImages);
+
+  const fileInput = document.querySelector("input[type=file]");
+  fileInput.addEventListener("change", readImages);
+  
+  const resetBtn = document.getElementById("resetBtn");
+
+  const sizeInput = document.getElementById("sizeInput");
+  const zoomInput = document.getElementById("zoomInput");
+  const offsetXInput = document.getElementById("offsetX");
+  const offsetYInput = document.getElementById("offsetY");
+  const brightnessInput = document.getElementById("brightness");
+  const contrastInput = document.getElementById("contrast");
+  const saturationInput = document.getElementById("saturation");
+  const sharpnessInput = document.getElementById("sharpness");
+  const whiteBalanceInput = document.getElementById("whiteBalance");
+
+  zoomInput.disabled = true;
+  offsetXInput.disabled = true;
+  offsetYInput.disabled = true;
+  brightnessInput.disabled = true;
+  contrastInput.disabled = true;
+  saturationInput.disabled = true; 
+  sharpnessInput.disabled = true;
+  whiteBalanceInput.disabled = true;
+
+  sizeInput.addEventListener("change", function () { applyFrameToImage();});
+  zoomInput.addEventListener("change", function () { applyFrameToImage();});
+  offsetXInput.addEventListener("change", function () { applyFrameToImage();});
+  offsetYInput.addEventListener("change", function () { applyFrameToImage();});
+  whiteBalanceInput.addEventListener("change", function () { applyFrameToImage();});
+  brightnessInput.addEventListener("change", function () { applyFrameToImage();});
+  contrastInput.addEventListener("change", function () { applyFrameToImage();});
+  saturationInput.addEventListener("change", function () { applyFrameToImage();});
+  sharpnessInput.addEventListener("change", function () { applyFrameToImage();});
+
+  resetBtn.addEventListener("click", function() {resetValues(); applyFrameToImage()});
+}
+
+document.addEventListener("DOMContentLoaded", setup);
+
+
+</script>
+
+</body>
+</html>
