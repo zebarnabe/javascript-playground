@@ -254,13 +254,18 @@ function setupDownloadButton() {
     resultBoxElement.appendChild(btn);
 
     const cvs = document.getElementById("rasterArea");
+    
+
     try {
       cvs.toBlob(function (blob) {
-        const downloadLink = downloadBlob(blob);
+        btn.textContent = "Click here to download..."
 
-        downloadLink.title="Download the framed picture";
-        downloadLink.textContent="Download";
+        btn.addEventListener("click", function() {
+          const downloadLink = downloadBlob(blob);
 
+          downloadLink.title="Download the framed picture";
+          downloadLink.textContent="Download";
+        });
 
       });
     }
