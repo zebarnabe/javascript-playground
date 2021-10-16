@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Eu apoio a Paula Franco</title>
+  <title>Javascript picture framing</title>
   <style>
     body {
       font-family: 'sans-serif';
@@ -258,7 +258,8 @@ function setupDownloadButton() {
 
     try {
       cvs.toBlob(function (blob) {
-        btn.textContent = "Click here to download..."
+        btn.textContent = "Click here to download...";
+        btn.href = "#";
 
         btn.addEventListener("click", function() {
           const downloadLink = downloadBlob(blob);
